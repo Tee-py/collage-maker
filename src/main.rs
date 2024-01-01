@@ -24,7 +24,7 @@ impl File {
     }
 }
 
-fn get_supported_ext_for_file_type<'a>(file_type: &FileType) -> Vec<&'a str> {
+fn get_supported_ext_for_file_type(file_type: &FileType) -> Vec<&str> {
     match file_type {
         FileType::IMAGE => vec![".jpg", ".jpeg", ".png"],
         FileType::VIDEO => vec![".mp4", ".mov"]
@@ -54,15 +54,11 @@ fn get_media_files(path: &str) -> Vec<File> {
     let mut media_files = vec![];
 
     for file in files {
-        for img_ext in &image_extensions {
-            if file.file_name().unwrap().to_str().unwrap().contains(img_ext) {
-                media_files.push(File::new(file.to_str().unwrap().to_owned(), FileType::IMAGE))
-            }
-        }
-
-        for vid_ext in &video_extensions {
-            if file.file_name().unwrap().to_str().unwrap().contains(vid_ext) {
-                media_files.push(File::new(file.to_str().unwrap().to_owned(), FileType::VIDEO))
+        for file_type in [FileType::IMAGE, FileType::VIDEO] {
+            for ext in get_supported_ext_for_file_type(&file_type) {
+                if file.file_name().unwrap().to_str().unwrap().contains(ext) {
+                    media_files.push(File::new(file.to_str().unwrap().to_owned(), FileType::IMAGE))
+                }
             }
         }
     }
