@@ -1,6 +1,6 @@
-use std::{io, fs};
+use std::{fs};
 use std::ops::Div;
-use image::{ImageBuffer, RgbImage, imageops};
+use image::{ImageBuffer, RgbImage, imageops, DynamicImage};
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -31,7 +31,7 @@ fn get_supported_ext_for_file_type(file_type: &FileType) -> Vec<&str> {
     }
 }
 
-fn get_files_in_dir_recursive(dir_path: &str) -> io::Result<Vec<PathBuf>> {
+fn get_files_in_dir_recursive(dir_path: &str) -> Vec<PathBuf> {
     let entries = fs::read_dir(dir_path).unwrap();
     let mut files: Vec<PathBuf> = vec![];
     for entry in entries {
@@ -40,17 +40,15 @@ fn get_files_in_dir_recursive(dir_path: &str) -> io::Result<Vec<PathBuf>> {
             files.push(path)
         } else {
             let dir = path.to_str().unwrap();
-            let paths = get_files_in_dir_recursive(dir).unwrap();
+            let paths = get_files_in_dir_recursive(dir);
             files.extend(paths);
         }
     }
-    Ok(files)
+    files
 }
 
 fn get_media_files(path: &str) -> Vec<File> {
-    let files = get_files_in_dir_recursive(path).unwrap();
-    let image_extensions = get_supported_ext_for_file_type(&FileType::IMAGE);
-    let video_extensions = get_supported_ext_for_file_type(&FileType::VIDEO);
+    let files = get_files_in_dir_recursive(path);
     let mut media_files = vec![];
 
     for file in files {
@@ -63,6 +61,23 @@ fn get_media_files(path: &str) -> Vec<File> {
         }
     }
     media_files
+}
+
+fn process_grid_image(path: &String, target_width: u32, target_height: u32) -> Option<DynamicImage> {
+    match image::open(path) {
+        Ok(img) => Some(img.resize_exact(target_width, target_height, imageops::FilterType::Triangle)),
+        Err(e) => {eprintln!("Error processing grid: {:?}", e); None}
+    }
+}
+
+fn paste_grid(buffer: &mut RgbImage, img: DynamicImage, row: u32, col: u32, target_width: u32, target_height: u32) {
+    let x = (col * target_width) as i64;
+    let y = (row * target_height) as i64;
+
+    match img.as_rgb8() {
+        Some(img_) => imageops::overlay(buffer, img_, x, y),
+        None => eprintln!("Invalid grid...")
+    }
 }
 
 fn main() {
@@ -81,26 +96,15 @@ fn main() {
         match file.file_type {
             FileType::IMAGE => {
                 println!("Start for {}", file.path.clone());
-                match image::open(file.path.clone()) {
-                    Ok(frame) => {
-                        let img = frame.resize_exact(TARGET_SIZE.0, TARGET_SIZE.1, imageops::FilterType::Triangle);
-                        let col: u32 = (index as u32) % grid_size;
-                        let row = (index as f32).div(grid_size as f32).round() as u32;
-                        let x = (col * TARGET_SIZE.0) as i64;
-                        let y = (row * TARGET_SIZE.1) as i64;
-
-                        match img.as_rgb8() {
-                            Some(img_) => imageops::overlay(&mut collage_buffer, img_, x, y),
-                            None => println!("Reading returns None")
-                        }
-                    },
-                    Err(_) => println!("Error reading frame...")
-                }
+                let col: u32 = (index as u32) % grid_size;
+                let row = (index as f32).div(grid_size as f32).round() as u32;
+                match process_grid_image(&file.path.clone(), TARGET_SIZE.0, TARGET_SIZE.1) {
+                    Some(grid_img) => paste_grid(&mut collage_buffer, grid_img, row, col, TARGET_SIZE.0, TARGET_SIZE.1),
+                    None => ()
+                };
             },
             FileType::VIDEO => ()
         }
     };
     collage_buffer.save("result.png").unwrap();
 }
-
-
