@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use clap::{Parser};
 
 #[derive(Parser, Default, Debug)]
+#[clap(author="Emmanuel Oluwatobi", version="1.0", about="A simple rust package for creating collage of all images on your system")]
 struct Arguments {
     /// comma(',') separated string of paths to folders where pictures resides on the system
     #[arg(short = 'p', long = "paths", required = true, value_parser, value_delimiter = ',', num_args = 1..)]
