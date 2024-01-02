@@ -2,6 +2,17 @@ use std::{fs};
 use std::ops::Div;
 use image::{ImageBuffer, RgbImage, imageops, DynamicImage};
 use std::path::PathBuf;
+use clap::{Parser};
+
+#[derive(Parser, Default, Debug)]
+struct Arguments {
+    /// Array of paths to folders where pictures resides on the system
+    #[arg(short = 'p', long = "paths", required = true, value_delimiter = ',')]
+    paths: Vec<String>,
+    /// Path where the output image is saved on disk
+    #[arg(short = 'o', long = "to_file", required = true)]
+    output_file: String
+}
 
 #[derive(Debug)]
 enum FileType {
@@ -81,30 +92,32 @@ fn paste_grid(buffer: &mut RgbImage, img: DynamicImage, row: u32, col: u32, targ
 }
 
 fn main() {
-    const TARGET_SIZE: (u32, u32) = (256, 256);
-    let mut files = get_media_files("/Users/teepy/Pictures");
-    let files2 = get_media_files("/Users/teepy/Downloads");
-    files.extend(files2);
-
-    let grid_size = f32::sqrt(files.len() as f32).ceil() as u32;
-    let total_width = TARGET_SIZE.0 * grid_size;
-    let total_height = TARGET_SIZE.1 * grid_size;
-
-    let mut collage_buffer: RgbImage = ImageBuffer::new(total_width, total_height);
-
-    for (index, file) in files.iter().enumerate() {
-        match file.file_type {
-            FileType::IMAGE => {
-                println!("Start for {}", file.path.clone());
-                let col: u32 = (index as u32) % grid_size;
-                let row = (index as f32).div(grid_size as f32).round() as u32;
-                match process_grid_image(&file.path.clone(), TARGET_SIZE.0, TARGET_SIZE.1) {
-                    Some(grid_img) => paste_grid(&mut collage_buffer, grid_img, row, col, TARGET_SIZE.0, TARGET_SIZE.1),
-                    None => ()
-                };
-            },
-            FileType::VIDEO => ()
-        }
-    };
-    collage_buffer.save("result.png").unwrap();
+    let args = Arguments::parse();
+    println!("{:?}", args);
+    // const TARGET_SIZE: (u32, u32) = (256, 256);
+    // let mut files = get_media_files("/Users/teepy/Pictures");
+    // let files2 = get_media_files("/Users/teepy/Downloads");
+    // files.extend(files2);
+    //
+    // let grid_size = f32::sqrt(files.len() as f32).ceil() as u32;
+    // let total_width = TARGET_SIZE.0 * grid_size;
+    // let total_height = TARGET_SIZE.1 * grid_size;
+    //
+    // let mut collage_buffer: RgbImage = ImageBuffer::new(total_width, total_height);
+    //
+    // for (index, file) in files.iter().enumerate() {
+    //     match file.file_type {
+    //         FileType::IMAGE => {
+    //             println!("Start for {}", file.path.clone());
+    //             let col: u32 = (index as u32) % grid_size;
+    //             let row = (index as f32).div(grid_size as f32).round() as u32;
+    //             match process_grid_image(&file.path.clone(), TARGET_SIZE.0, TARGET_SIZE.1) {
+    //                 Some(grid_img) => paste_grid(&mut collage_buffer, grid_img, row, col, TARGET_SIZE.0, TARGET_SIZE.1),
+    //                 None => ()
+    //             };
+    //         },
+    //         FileType::VIDEO => ()
+    //     }
+    // };
+    // collage_buffer.save("result.png").unwrap();
 }
