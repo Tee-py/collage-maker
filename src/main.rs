@@ -92,21 +92,25 @@ fn paste_grid(buffer: &mut RgbImage, img: DynamicImage, row: u32, col: u32, targ
 }
 
 fn main() {
+    // Extract CLI Arguments
     let args = Arguments::parse();
     let media_paths = args.paths;
     let output_path = args.output_file;
 
+    // Set the target size of the collage image and get all media files
     const TARGET_SIZE: (u32, u32) = (256, 256);
     let mut media_files = vec![];
     for path in media_paths {
         media_files.extend(get_media_files(&path))
     }
 
+    // Calculate the grid size and collage dimensions from the total number of media files
     let grid_size = f32::sqrt(media_files.len() as f32).ceil() as u32;
     let total_width = TARGET_SIZE.0 * grid_size;
     let total_height = TARGET_SIZE.1 * grid_size;
     let mut collage_buffer: RgbImage = ImageBuffer::new(total_width, total_height);
 
+    // Populate the collage grid buffer
     for (index, file) in media_files.iter().enumerate() {
         match file.file_type {
             FileType::IMAGE => {
@@ -120,5 +124,7 @@ fn main() {
             FileType::VIDEO => ()
         }
     };
+
+    // Save the collage to disk
     collage_buffer.save(output_path).unwrap();
 }
